@@ -5,24 +5,25 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pbharrell/bloner-server/connection"
 	"github.com/pbharrell/bloner/state"
 )
 
 type Game struct {
 	mu      sync.Mutex
 	mainPid int
-	players map[int]*Player
+	players map[int]*connection.Player
 	state   state.GameState
 }
 
-func runGame(players []*Player) {
+func runGame(players []*connection.Player) {
 	if len(players) < 4 {
 		println("Error! Failed to start game due to insufficient number of players")
 	}
 
 	game := &Game{
 		mainPid: players[0].PlayerId,
-		players: make(map[int]*Player),
+		players: make(map[int]*connection.Player),
 		state:   state.GameState{},
 	}
 
@@ -38,7 +39,7 @@ func runGame(players []*Player) {
 		game.players[pid] = p
 
 		fmt.Printf("  Player %d: %s\n", pid, p.Conn.RemoteAddr())
-		p.send(Message{
+		p.Send(connection.Message{
 			Type: "welcome",
 			Data: map[string]any{
 				"playerID": pid,
@@ -47,7 +48,7 @@ func runGame(players []*Player) {
 		})
 	}
 
-	game.players[game.mainPid].send(Message{
+	game.players[game.mainPid].Send(connection.Message{
 		Type: "state_req",
 		Data: "",
 	})
@@ -72,13 +73,13 @@ func runGame(players []*Player) {
 	}
 
 	// Initial broadcast
-	game.broadcast(Message{
+	game.broadcast(connection.Message{
 		Type: "info",
 		Data: "Game has started with 4 players!",
 	})
 }
 
-func (g *Game) msgHandler(msg Message) {
+func (g *Game) msgHandler(msg connection.Message) {
 	switch msg.Type {
 	case "state_res":
 		state, ok := msg.Data.(state.GameState)
@@ -96,8 +97,8 @@ func (g *Game) StateResponseHandler(state state.GameState) {
 	println("Updated game state!")
 }
 
-func (g *Game) broadcast(msg Message) {
+func (g *Game) broadcast(msg connection.Message) {
 	for _, p := range g.players {
-		p.send(msg)
+		p.Send(msg)
 	}
 }
