@@ -40,10 +40,10 @@ func runGame(players []*connection.Player) {
 
 		fmt.Printf("  Player %d: %s\n", pid, p.Conn.RemoteAddr())
 		p.Send(connection.Message{
-			Type: "welcome",
-			Data: map[string]any{
-				"playerID": pid,
-				"time":     time.Now().String(),
+			Type: "lobby_assign",
+			Data: connection.LobbyAssign{
+				LobbyId:  gameSeq,
+				PlayerId: pid,
 			},
 		})
 	}
@@ -59,6 +59,7 @@ func runGame(players []*connection.Player) {
 			select {
 			case msg := <-p.Data:
 				game.msgHandler(msg)
+				break
 			case isPConnected := <-p.IsConnected:
 				connected = connected && isPConnected
 				break

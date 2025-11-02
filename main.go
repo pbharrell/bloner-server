@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"net"
 	"sync"
+
+	"github.com/pbharrell/bloner-server/connection"
 )
 
 var (
-	lobby     []*Player
+	lobby     []*connection.Player
 	games     map[int]*Game
 	lobbyLock sync.Mutex
 	gameLock  sync.Mutex
@@ -23,6 +25,7 @@ func main() {
 	fmt.Println("Server started on :9000")
 	games = make(map[int]*Game)
 
+	defer ln.Close()
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
@@ -41,18 +44,19 @@ func handleConnection(conn net.Conn) {
 	fmt.Println("New connection:", conn.RemoteAddr())
 
 	// Add connection to lobby
-	player := Player{
+	player := connection.Player{
 		PlayerId:    playerSeq,
 		Conn:        conn,
 		IsConnected: make(chan bool),
-		Data:        make(chan Message),
+		Data:        make(chan connection.Message),
 	}
 	playerSeq++
 
 	lobby = append(lobby, &player)
 
-	go player.listen()
+	go player.Listen()
 
+	// TODO: Handle lobby requests!
 	if len(lobby) == 4 {
 		// Create a new game with these 4 players
 		playerSeq = 0
