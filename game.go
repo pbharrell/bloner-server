@@ -1,19 +1,17 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/pbharrell/bloner-server/connection"
-	"github.com/pbharrell/bloner/state"
 )
 
 type Game struct {
-	mu      sync.Mutex
 	mainPid int
 	players map[int]*connection.Player
-	state   state.GameState
+	state   connection.GameState
 }
 
 func runGame(players []*connection.Player) {
@@ -24,7 +22,7 @@ func runGame(players []*connection.Player) {
 	game := &Game{
 		mainPid: players[0].PlayerId,
 		players: make(map[int]*connection.Player),
-		state:   state.GameState{},
+		state:   connection.GameState{},
 	}
 
 	gameLock.Lock()
@@ -81,21 +79,37 @@ func runGame(players []*connection.Player) {
 }
 
 func (g *Game) msgHandler(msg connection.Message) {
+	// Marshal Data back into JSON bytes
+	raw, err := json.Marshal(msg.Data)
+	if err != nil {
+		println("marshal error:", err)
+		return
+	}
+
 	switch msg.Type {
 	case "state_res":
-		state, ok := msg.Data.(state.GameState)
-		if !ok {
-			println("Invalid data type passed with type: `state_res`")
+		var state connection.GameState
+		if err := json.Unmarshal(raw, &state); err != nil {
+			println("GameState unmarshal error:", err)
+			return
 		}
 		g.StateResponseHandler(state)
+
 	default:
 		fmt.Printf("Unsupported type in `game.msgHandler()` %v\n", msg.Type)
 	}
 }
 
-func (g *Game) StateResponseHandler(state state.GameState) {
-	g.state.Elements = state.Elements
-	println("Updated game state!")
+func (g *Game) StateResponseHandler(state connection.GameState) {
+	g.state = state
+	println("Handled game state response!")
+
+	for _, p := range g.players {
+		p.Send(connection.Message{
+			Type: "state_res",
+			Data: state,
+		})
+	}
 }
 
 func (g *Game) broadcast(msg connection.Message) {
