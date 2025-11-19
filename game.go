@@ -88,25 +88,44 @@ func (g *Game) msgHandler(msg connection.Message) {
 
 	switch msg.Type {
 	case "state_res":
-		var state connection.GameState
+		var state connection.StateResponse
 		if err := json.Unmarshal(raw, &state); err != nil {
 			println("GameState unmarshal error:", err)
 			return
 		}
 		g.StateResponseHandler(state)
 
+	case "turn_info":
+		var state connection.TurnInfo
+		if err := json.Unmarshal(raw, &state); err != nil {
+			println("GameState unmarshal error:", err)
+			return
+		}
+		g.TurnInfoHandler(state)
+
 	default:
 		fmt.Printf("Unsupported type in `game.msgHandler()` %v\n", msg.Type)
 	}
 }
 
-func (g *Game) StateResponseHandler(state connection.GameState) {
+func (g *Game) StateResponseHandler(state connection.StateResponse) {
 	g.state = state
 	println("Handled game state response!")
 
 	for _, p := range g.players {
 		p.Send(connection.Message{
 			Type: "state_res",
+			Data: state,
+		})
+	}
+}
+
+func (g *Game) TurnInfoHandler(state connection.TurnInfo) {
+	println("Handled turn info!")
+
+	for _, p := range g.players {
+		p.Send(connection.Message{
+			Type: "turn_info",
 			Data: state,
 		})
 	}

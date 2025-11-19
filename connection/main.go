@@ -21,6 +21,11 @@ type Card struct {
 	Number uint8
 }
 
+const (
+	InvalidSuit   = 255
+	InvalidNumber = 255
+)
+
 type PlayerState struct {
 	PlayerId int `json:"playerId"`
 	Cards    []Card
