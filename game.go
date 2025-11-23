@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/pbharrell/bloner-server/connection"
 )
@@ -62,7 +61,7 @@ func runGame(players []*connection.Player) {
 				connected = connected && isPConnected
 				break
 			default:
-				time.Sleep(1000000000)
+				break
 			}
 		}
 
