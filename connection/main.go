@@ -49,7 +49,7 @@ type GameState struct {
 type GameStateUpdate struct {
 	PlayerId     int      `json:"playerId"`
 	TurnType     TurnType `json:"typeType"`
-	TrumpPick    uint8    `json:"trumpPick"`
+	TrumpPick    int8     `json:"trumpPick"`
 	TrumpDiscard Card     `json:"trumpDiscard"`
 	CardPlay     Card     `json:"cardPlay"`
 }
