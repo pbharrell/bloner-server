@@ -37,12 +37,13 @@ type TeamState struct {
 }
 
 type GameState struct {
-	PlayerId     int    `json:"playerId"`
-	ActivePlayer int    `json:"activePlayer"`
-	TrumpSuit    int    `json:"trumpSuit"`
-	DrawPile     []Card `json:"drawPile"`
-	PlayPile     []Card `json:"playPile"`
-	TeamState    [2]TeamState
+	PlayerId        int    `json:"playerId"`
+	ActivePlayer    int    `json:"activePlayer"`
+	TrumpDrawPlayer int    `json:"trumpDrawId"`
+	TrumpSuit       int    `json:"trumpSuit"`
+	DrawPile        []Card `json:"drawPile"`
+	PlayPile        []Card `json:"playPile"`
+	TeamState       [2]TeamState
 }
 
 type GameStateUpdate struct {
