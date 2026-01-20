@@ -2,9 +2,12 @@ package connection
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net"
+
+	"github.com/coder/websocket"
 )
 
 type TurnType uint8
@@ -129,37 +132,59 @@ func (s *Server) Send(msg Message) {
 
 type Player struct {
 	PlayerId    int
-	Conn        net.Conn
+	Ctx         context.Context
+	WS          *websocket.Conn
 	IsConnected chan bool
 	Data        chan Message
 }
 
 func (p *Player) Listen() {
-	conn := p.Conn
+	defer p.WS.Close(websocket.StatusNormalClosure, "disconnect")
 
-	defer conn.Close()
-	scanner := bufio.NewScanner(conn)
+	for {
+		msgType, data, err := p.WS.Read(p.Ctx)
+		if err != nil {
+			return
+		}
 
-	p.IsConnected <- true
-
-	for scanner.Scan() {
-		raw := scanner.Bytes()
+		if msgType != websocket.MessageBinary {
+			continue
+		}
 
 		var msg Message
-		if err := json.Unmarshal(raw, &msg); err != nil {
+		if err := json.Unmarshal(data, &msg); err != nil {
 			println("invalid JSON")
 			continue
 		}
 
 		p.Data <- msg
 	}
-	p.IsConnected <- false
+
+	// conn := p.WS
+	//
+	// defer conn.Close()
+	// scanner := bufio.NewScanner(conn)
+	//
+	// p.IsConnected <- true
+	//
+	// for scanner.Scan() {
+	// 	raw := scanner.Bytes()
+	//
+	// 	var msg Message
+	// 	if err := json.Unmarshal(raw, &msg); err != nil {
+	// 		println("invalid JSON")
+	// 		continue
+	// 	}
+	//
+	// 	p.Data <- msg
+	// }
+	// p.IsConnected <- false
 }
 
 func (p *Player) Send(msg Message) {
 	data, _ := json.Marshal(msg)
 	data = append(data, '\n') // so clients can read line by line
-	_, err := p.Conn.Write(data)
+	err := p.WS.Write(p.Ctx, websocket.MessageBinary, data)
 	if err != nil {
 		fmt.Println("send error:", err)
 	}

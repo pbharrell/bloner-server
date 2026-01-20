@@ -1,9 +1,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"net"
+	"net/http"
 	"sync"
+
+	"github.com/coder/websocket"
 
 	"github.com/pbharrell/bloner-server/connection"
 )
@@ -18,35 +21,38 @@ var (
 )
 
 func main() {
-	ln, err := net.Listen("tcp", ":9000")
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println("Server started on :9000")
 	games = make(map[int]*Game)
 
-	defer ln.Close()
-	for {
-		conn, err := ln.Accept()
-		if err != nil {
-			fmt.Println("accept error:", err)
-			continue
-		}
+	http.HandleFunc("/ws", wsHandler)
 
-		go handleConnection(conn)
+	fmt.Println("Server started on :9000")
+	if err := http.ListenAndServe(":9000", nil); err != nil {
+		panic(err)
 	}
 }
 
-func handleConnection(conn net.Conn) {
+func wsHandler(w http.ResponseWriter, r *http.Request) {
+	conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{
+		OriginPatterns: []string{"*"}, // dev only
+	})
+	if err != nil {
+		return
+	}
+
+	go handleConnection(conn)
+}
+
+func handleConnection(conn *websocket.Conn) {
 	lobbyLock.Lock()
 	defer lobbyLock.Unlock()
 
-	fmt.Println("New connection:", conn.RemoteAddr())
+	// fmt.Println("New connection:", conn.RemoteAddr())
 
 	// Add connection to lobby
 	player := connection.Player{
 		PlayerId:    playerSeq,
-		Conn:        conn,
+		Ctx:         context.Background(),
+		WS:          conn,
 		IsConnected: make(chan bool),
 		Data:        make(chan connection.Message),
 	}

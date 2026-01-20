@@ -36,7 +36,7 @@ func runGame(players []*connection.Player) {
 		pid := p.PlayerId
 		game.players[pid] = p
 
-		fmt.Printf("  Player %d: %s\n", pid, p.Conn.RemoteAddr())
+		// fmt.Printf("  Player %d: %s\n", pid, p.WS.RemoteAddr())
 		p.Send(connection.Message{
 			Type: "lobby_assign",
 			Data: connection.LobbyAssign{
