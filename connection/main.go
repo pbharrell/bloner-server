@@ -1,11 +1,9 @@
 package connection
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
-	"net"
 
 	"github.com/coder/websocket"
 )
