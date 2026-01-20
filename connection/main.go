@@ -98,21 +98,26 @@ type TurnInfo = GameStateUpdate
 
 // Internal types
 type Server struct {
-	Conn net.Conn
+	Ctx  context.Context
+	WS   *websocket.Conn
 	Data chan Message
 }
 
 func (s *Server) Listen() {
-	conn := s.Conn
+	defer s.WS.Close(websocket.StatusNormalClosure, "disconnect")
 
-	defer conn.Close()
-	scanner := bufio.NewScanner(conn)
+	for {
+		msgType, data, err := s.WS.Read(s.Ctx)
+		if err != nil {
+			return
+		}
 
-	for scanner.Scan() {
-		raw := scanner.Bytes()
+		if msgType != websocket.MessageBinary {
+			continue
+		}
 
 		var msg Message
-		if err := json.Unmarshal(raw, &msg); err != nil {
+		if err := json.Unmarshal(data, &msg); err != nil {
 			println("invalid JSON")
 			continue
 		}
@@ -124,7 +129,7 @@ func (s *Server) Listen() {
 func (s *Server) Send(msg Message) {
 	data, _ := json.Marshal(msg)
 	data = append(data, '\n') // so clients can read line by line
-	_, err := s.Conn.Write(data)
+	err := s.WS.Write(s.Ctx, websocket.MessageBinary, data)
 	if err != nil {
 		fmt.Println("send error:", err)
 	}
