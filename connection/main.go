@@ -79,9 +79,7 @@ type Message struct {
 }
 
 // PAYLOAD MO TYPES
-type LobbyRequest struct {
-	LobbyId int16 `json:"lobbyId"`
-}
+type LobbyRequest = int16
 
 // PAYLOAD MT TYPES
 type LobbyAssign struct {
@@ -99,6 +97,14 @@ type Server struct {
 	Ctx  context.Context
 	WS   *websocket.Conn
 	Data chan Message
+}
+
+type LobbyRequestCallback func(request LobbyRequest, player *Player) int
+
+var lobbyRequestCallback LobbyRequestCallback
+
+func SetLobbyRequestCallback(callback LobbyRequestCallback) {
+	lobbyRequestCallback = callback
 }
 
 func (s *Server) Listen() {
@@ -135,6 +141,7 @@ func (s *Server) Send(msg Message) {
 
 type Player struct {
 	PlayerId    int
+	LobbyId     int
 	Ctx         context.Context
 	WS          *websocket.Conn
 	IsConnected chan bool
@@ -144,6 +151,7 @@ type Player struct {
 func (p *Player) Listen() {
 	defer p.WS.Close(websocket.StatusNormalClosure, "disconnect")
 
+	fmt.Printf("Listening for msgs from player %v!", p.PlayerId)
 	for {
 		msgType, data, err := p.WS.Read(p.Ctx)
 		if err != nil {
@@ -162,26 +170,21 @@ func (p *Player) Listen() {
 
 		p.Data <- msg
 	}
+}
 
-	// conn := p.WS
-	//
-	// defer conn.Close()
-	// scanner := bufio.NewScanner(conn)
-	//
-	// p.IsConnected <- true
-	//
-	// for scanner.Scan() {
-	// 	raw := scanner.Bytes()
-	//
-	// 	var msg Message
-	// 	if err := json.Unmarshal(raw, &msg); err != nil {
-	// 		println("invalid JSON")
-	// 		continue
-	// 	}
-	//
-	// 	p.Data <- msg
-	// }
-	// p.IsConnected <- false
+func (p *Player) LobbyRequestHandler(request LobbyRequest) {
+	lobby := lobbyRequestCallback(request, p)
+
+	println("Handled lobby request! Assigning lobby with id:", lobby)
+
+	p.LobbyId = lobby
+	p.Send(Message{
+		Type: "lobby_assign",
+		Data: LobbyAssign{
+			LobbyId:  p.LobbyId,
+			PlayerId: p.PlayerId,
+		},
+	})
 }
 
 func (p *Player) Send(msg Message) {
