@@ -60,6 +60,7 @@ type Message struct {
 	// Lobby Types:
 	//   MO: lobby_req; data = lobbyId
 	//   MT: lobby_assign; data = { lobbyId, playerId }
+	//   MT: game_start; data = { playerIds }
 	//
 	// Game Init Types:
 	//   MT: game_start; data = player_id? Maybe nil
@@ -86,6 +87,8 @@ type LobbyAssign struct {
 	LobbyId  int `json:"lobbyId"`
 	PlayerId int `json:"playerId"`
 }
+
+type GameStart [4]int
 
 // PAYLOAD UNIVERSAL TYPES
 type StateResponse = GameState
@@ -151,7 +154,7 @@ type Player struct {
 func (p *Player) Listen() {
 	defer p.WS.Close(websocket.StatusNormalClosure, "disconnect")
 
-	fmt.Printf("Listening for msgs from player %v!", p.PlayerId)
+	fmt.Printf("Listening for msgs from player %v!\n", p.PlayerId)
 	for {
 		msgType, data, err := p.WS.Read(p.Ctx)
 		if err != nil {

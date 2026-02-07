@@ -84,6 +84,7 @@ func lobbyRequestCallback(request connection.LobbyRequest, player *connection.Pl
 	l, ok := lobbies[int(request)]
 	if !ok {
 		l = Lobby{
+			lock:    &sync.Mutex{},
 			id:      lobbySeq,
 			mainPid: -1,
 			players: []*connection.Player{player},
@@ -111,6 +112,7 @@ func handleConnection(conn *websocket.Conn) {
 	// Add connection to lobby
 	player := connection.Player{
 		PlayerId:    playerSeq,
+		LobbyId:     -1,
 		Ctx:         context.Background(),
 		WS:          conn,
 		IsConnected: make(chan bool),

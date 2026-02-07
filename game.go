@@ -20,6 +20,16 @@ func runGame(lobby *Lobby) {
 
 	fmt.Println("Starting game with players:")
 
+	var playerArr [4]int
+	for i, p := range lobby.players {
+		playerArr[i] = p.PlayerId
+	}
+
+	lobby.broadcast(connection.Message{
+		Type: "game_start",
+		Data: playerArr,
+	})
+
 	lobby.getPlayer(lobby.mainPid).Send(connection.Message{
 		Type: "state_req",
 		Data: "",
@@ -40,7 +50,7 @@ func PlayerMsgHandler(msg connection.Message, p *connection.Player) {
 		return
 	}
 
-	fmt.Printf("Handling message of type \"%v\" from player with id: %v", msg.Type, p.PlayerId)
+	fmt.Printf("Handling message of type \"%v\" from player with id: %v\n", msg.Type, p.PlayerId)
 	if p.LobbyId < 0 {
 		switch msg.Type {
 		case "lobby_req":
@@ -83,6 +93,24 @@ func PlayerMsgHandler(msg connection.Message, p *connection.Player) {
 func (l *Lobby) StateResponseHandler(state connection.StateResponse) {
 	l.lock.Lock()
 	defer l.lock.Unlock()
+
+	print("Active player in state: ", state.ActivePlayer)
+
+	serverPlayer := l.getPlayer(state.ActivePlayer)
+	if serverPlayer == nil {
+		println(" vs nil on server")
+	} else {
+		println("vs", l.getPlayer(state.ActivePlayer).PlayerId, "on server")
+	}
+
+	state.ActivePlayer = l.getPlayer(state.ActivePlayer).PlayerId
+
+	for t := range state.TeamState {
+		for p := range state.TeamState[t].PlayerState {
+			fmt.Printf("Team: %v, player: %v with id %v becomes %v\n", t, p, state.TeamState[t].PlayerState[p].PlayerId, l.players[t*2+p].PlayerId)
+			state.TeamState[t].PlayerState[p].PlayerId = l.players[t*2+p].PlayerId
+		}
+	}
 
 	l.state = state
 	println("Handled game state response!")
