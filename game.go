@@ -94,24 +94,6 @@ func (l *Lobby) StateResponseHandler(state connection.StateResponse) {
 	l.lock.Lock()
 	defer l.lock.Unlock()
 
-	print("Active player in state: ", state.ActivePlayer)
-
-	serverPlayer := l.getPlayer(state.ActivePlayer)
-	if serverPlayer == nil {
-		println(" vs nil on server")
-	} else {
-		println("vs", l.getPlayer(state.ActivePlayer).PlayerId, "on server")
-	}
-
-	state.ActivePlayer = l.getPlayer(state.ActivePlayer).PlayerId
-
-	for t := range state.TeamState {
-		for p := range state.TeamState[t].PlayerState {
-			fmt.Printf("Team: %v, player: %v with id %v becomes %v\n", t, p, state.TeamState[t].PlayerState[p].PlayerId, l.players[t*2+p].PlayerId)
-			state.TeamState[t].PlayerState[p].PlayerId = l.players[t*2+p].PlayerId
-		}
-	}
-
 	l.state = state
 	println("Handled game state response!")
 
