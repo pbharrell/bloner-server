@@ -60,6 +60,7 @@ type Message struct {
 	// Lobby Types:
 	//   MO: lobby_req; data = lobbyId
 	//   MT: lobby_assign; data = { lobbyId, playerId }
+	//   MT: lobby_decline; data = nil
 	//   MT: game_start; data = { playerIds }
 	//
 	// Game Init Types:
@@ -178,16 +179,18 @@ func (p *Player) Listen() {
 func (p *Player) LobbyRequestHandler(request LobbyRequest) {
 	lobby := lobbyRequestCallback(request, p)
 
-	println("Handled lobby request! Assigning lobby with id:", lobby)
+	if lobby >= 0 {
+		println("Handled lobby request! Assigning lobby with id:", lobby)
 
-	p.LobbyId = lobby
-	p.Send(Message{
-		Type: "lobby_assign",
-		Data: LobbyAssign{
-			LobbyId:  p.LobbyId,
-			PlayerId: p.PlayerId,
-		},
-	})
+		p.LobbyId = lobby
+		p.Send(Message{
+			Type: "lobby_assign",
+			Data: LobbyAssign{
+				LobbyId:  p.LobbyId,
+				PlayerId: p.PlayerId,
+			},
+		})
+	}
 }
 
 func (p *Player) Send(msg Message) {

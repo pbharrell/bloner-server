@@ -83,15 +83,25 @@ func lobbyRequestCallback(request connection.LobbyRequest, player *connection.Pl
 
 	l, ok := lobbies[int(request)]
 	if !ok {
-		l = Lobby{
-			lock:    &sync.Mutex{},
-			id:      lobbySeq,
-			mainPid: -1,
-			players: []*connection.Player{player},
+		if request >= 0 {
+			player.Send(connection.Message{Type: "lobby_decline", Data: nil})
+			fmt.Printf("Request for specific lobby `%v` which does not exist. Declined.", request)
+			return -1
+		} else {
+			fmt.Printf("New lobby request received. Creating lobby.")
+			l = Lobby{
+				lock:    &sync.Mutex{},
+				id:      lobbySeq,
+				mainPid: -1,
+				players: []*connection.Player{player},
+			}
+			lobbies[l.id] = l
+			lobbySeq++
 		}
-		lobbies[l.id] = l
-		lobbySeq++
-
+	} else if len(l.players) >= 4 {
+		player.Send(connection.Message{Type: "lobby_decline", Data: nil})
+		println("Handled lobby request for an invalid lobby. Declined.")
+		return -1
 	} else {
 		l.players = append(l.players, player)
 		lobbies[l.id] = l
